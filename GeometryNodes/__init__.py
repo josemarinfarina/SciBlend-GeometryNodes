@@ -85,9 +85,37 @@ class SciblendGeonodesProperties(PropertyGroup):
         items=[
             ('translate', "Trasladar", "Aplicar traslación"),
             ('rotate', "Rotar", "Aplicar rotación"),
-            ('scale', "Escalar", "Aplicar escalado")
+            ('scale', "Escalar", "Aplicar escalado"),
+            ('mirror', "Espejo", "Aplicar espejo"),
+            ('array', "Array", "Aplicar array")
         ],
         default='translate'
+    )
+    
+    attribute_target: EnumProperty(
+        name="Aplicar a",
+        description="Atributo al que se aplicará la transformación",
+        items=[
+            ('GEOMETRY', "Geometría", "Aplicar a toda la geometría"),
+            ('POSITION', "Posición", "Aplicar solo a las posiciones de los vértices"),
+            ('NORMAL', "Normales", "Aplicar solo a las normales"),
+            ('UV', "UVs", "Aplicar solo a las coordenadas UV"),
+            ('COLOR', "Color", "Aplicar solo a los colores de vértices"),
+            ('CUSTOM', "Atributo personalizado", "Aplicar a un atributo personalizado")
+        ],
+        default='GEOMETRY'
+    )
+    
+    use_custom_attribute: BoolProperty(
+        name="Usar atributo personalizado",
+        description="Activar para especificar un nombre de atributo personalizado",
+        default=False
+    )
+    
+    custom_attribute_name: StringProperty(
+        name="Nombre del atributo",
+        description="Nombre del atributo personalizado al que aplicar la transformación",
+        default=""
     )
 
 def register():

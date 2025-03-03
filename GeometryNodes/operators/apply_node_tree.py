@@ -369,39 +369,243 @@ class SCIBLEND_OT_apply_transformation(Operator):
     )
     
     def execute(self, context):
-        if not context.active_object:
-            self.report({'ERROR'}, "No hay objeto seleccionado")
+        obj = context.active_object
+        if not obj:
+            self.report({'ERROR'}, "No hay un objeto activo seleccionado")
             return {'CANCELLED'}
         
-        # Obtener la ruta del addon
-        addon_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        # Obtener el tipo de transformación y atributo del panel
+        props = context.scene.sciblend_geonodes
+        self.transform_type = props.transform_type
+        attribute_target = props.attribute_target
         
-        # Construir la ruta al archivo JSON correspondiente
-        json_filepath = os.path.join(addon_path, "json_templates", f"{self.transform_type}.json")
+        # Crear datos de nodo según el tipo de transformación
+        node_data = self.create_transform_node_data(attribute_target)
         
-        if not os.path.exists(json_filepath):
-            self.report({'ERROR'}, f"No se encontró el archivo JSON para {self.transform_type}")
+        # Aplicar el árbol de nodos
+        success = self.apply_node_tree(obj, node_data)
+        
+        if success:
+            self.report({'INFO'}, f"Transformación {self.transform_type} aplicada correctamente")
+            return {'FINISHED'}
+        else:
+            self.report({'ERROR'}, f"Error al aplicar transformación {self.transform_type}")
             return {'CANCELLED'}
+    
+    def create_transform_node_data(self, attribute_target):
+        """
+        Crea los datos de nodo para la transformación especificada.
         
-        try:
-            # Leer el archivo JSON
-            with open(json_filepath, 'r') as f:
-                node_data = json.load(f)
+        Args:
+            attribute_target: El atributo al que se aplicará la transformación
             
-            # Aplicar el mapa nodal
-            success = self.apply_node_tree(context.active_object, node_data)
+        Returns:
+            dict: Los datos del nodo en formato JSON
+        """
+        # Obtener el nombre del atributo personalizado si es necesario
+        props = bpy.context.scene.sciblend_geonodes
+        custom_attribute_name = ""
+        
+        if attribute_target == 'CUSTOM':
+            custom_attribute_name = props.custom_attribute_name
+            if not custom_attribute_name:
+                logger.warning("Se seleccionó atributo personalizado pero no se especificó un nombre")
+        
+        # Nodos básicos para todas las transformaciones
+        node_data = {
+            "name": f"GN_{self.transform_type}",
+            "nodes": [],
+            "links": []
+        }
+        
+        # Configuración específica según el tipo de transformación
+        if self.transform_type in ['translate', 'rotate', 'scale']:
+            # Para transformaciones básicas, usamos GeometryNodeTransform
+            transform_node = {
+                "type": "GeometryNodeTransform",
+                "name": f"Transform_{self.transform_type}",
+                "location": (0, 0),
+                "properties": {}
+            }
+            node_data["nodes"].append(transform_node)
             
-            if success:
-                self.report({'INFO'}, f"Transformación {self.transform_type} aplicada correctamente")
-                return {'FINISHED'}
+            # Enlaces básicos para geometría completa
+            if attribute_target == 'GEOMETRY':
+                node_data["links"] = [
+                    {
+                        "from_node": "GROUP_INPUT",
+                        "from_socket": "Geometry",
+                        "to_node": f"Transform_{self.transform_type}",
+                        "to_socket": "Geometry"
+                    },
+                    {
+                        "from_node": f"Transform_{self.transform_type}",
+                        "from_socket": "Geometry",
+                        "to_node": "GROUP_OUTPUT",
+                        "to_socket": "Geometry"
+                    }
+                ]
             else:
-                self.report({'ERROR'}, f"Error al aplicar transformación {self.transform_type}")
-                return {'CANCELLED'}
+                # Para atributos específicos, necesitamos nodos adicionales
+                # Nodo para capturar el atributo
+                capture_node = {
+                    "type": "GeometryNodeCaptureAttribute",
+                    "name": "CaptureAttribute",
+                    "location": (-200, 0),
+                    "properties": {
+                        "data_type": 'FLOAT_VECTOR'  # Tipo por defecto para posiciones, normales, etc.
+                    }
+                }
+                
+                # Nodo para transferir el atributo transformado
+                transfer_node = {
+                    "type": "GeometryNodeStoreNamedAttribute",
+                    "name": "StoreAttribute",
+                    "location": (200, 0),
+                    "properties": {}
+                }
+                
+                # Añadir nodos al árbol
+                node_data["nodes"].extend([capture_node, transfer_node])
+                
+                # Configurar el nombre del atributo según el tipo seleccionado
+                attribute_name = ""
+                if attribute_target == 'POSITION':
+                    attribute_name = "position"
+                elif attribute_target == 'NORMAL':
+                    attribute_name = "normal"
+                elif attribute_target == 'UV':
+                    attribute_name = "UVMap"
+                elif attribute_target == 'COLOR':
+                    attribute_name = "Color"
+                elif attribute_target == 'CUSTOM' and custom_attribute_name:
+                    attribute_name = custom_attribute_name
+                
+                # Configurar propiedades de los nodos según el atributo
+                capture_node["properties"]["attribute_name"] = attribute_name
+                transfer_node["properties"]["name"] = attribute_name
+                
+                # Enlaces para el flujo de atributos
+                node_data["links"] = [
+                    # Conectar la geometría de entrada al nodo de captura
+                    {
+                        "from_node": "GROUP_INPUT",
+                        "from_socket": "Geometry",
+                        "to_node": "CaptureAttribute",
+                        "to_socket": "Geometry"
+                    },
+                    # Conectar el atributo capturado al nodo de transformación
+                    {
+                        "from_node": "CaptureAttribute",
+                        "from_socket": "Attribute",
+                        "to_node": f"Transform_{self.transform_type}",
+                        "to_socket": "Geometry"
+                    },
+                    # Conectar la geometría transformada al nodo de transferencia
+                    {
+                        "from_node": f"Transform_{self.transform_type}",
+                        "from_socket": "Geometry",
+                        "to_node": "StoreAttribute",
+                        "to_socket": "Value"
+                    },
+                    # Conectar la geometría del nodo de captura al nodo de transferencia
+                    {
+                        "from_node": "CaptureAttribute",
+                        "from_socket": "Geometry",
+                        "to_node": "StoreAttribute",
+                        "to_socket": "Geometry"
+                    },
+                    # Conectar la geometría final a la salida
+                    {
+                        "from_node": "StoreAttribute",
+                        "from_socket": "Geometry",
+                        "to_node": "GROUP_OUTPUT",
+                        "to_socket": "Geometry"
+                    }
+                ]
+        elif self.transform_type == 'mirror':
+            # Para espejo, usamos un nodo específico si está disponible
+            try:
+                # Intentar crear un nodo de espejo
+                mirror_node = {
+                    "type": "GeometryNodeMirror",  # Este nodo puede no existir en todas las versiones
+                    "name": "Mirror",
+                    "location": (0, 0),
+                    "properties": {}
+                }
+                node_data["nodes"].append(mirror_node)
+                
+                # Enlaces para el nodo de espejo
+                node_data["links"] = [
+                    {
+                        "from_node": "GROUP_INPUT",
+                        "from_socket": "Geometry",
+                        "to_node": "Mirror",
+                        "to_socket": "Geometry"
+                    },
+                    {
+                        "from_node": "Mirror",
+                        "from_socket": "Geometry",
+                        "to_node": "GROUP_OUTPUT",
+                        "to_socket": "Geometry"
+                    }
+                ]
+            except Exception as e:
+                logger.error(f"Error al crear nodo de espejo: {str(e)}")
+                # Si falla, conectar directamente entrada y salida
+                node_data["links"] = [
+                    {
+                        "from_node": "GROUP_INPUT",
+                        "from_socket": "Geometry",
+                        "to_node": "GROUP_OUTPUT",
+                        "to_socket": "Geometry"
+                    }
+                ]
+        elif self.transform_type == 'array':
+            # Para array, usamos un nodo de instancias
+            array_node = {
+                "type": "GeometryNodeInstanceOnPoints",
+                "name": "Array",
+                "location": (0, 0),
+                "properties": {}
+            }
             
-        except Exception as e:
-            logger.exception(f"Error al aplicar transformación {self.transform_type}")
-            self.report({'ERROR'}, f"Error al aplicar transformación: {str(e)}")
-            return {'CANCELLED'}
+            # Nodo para crear puntos en una línea
+            points_node = {
+                "type": "GeometryNodeMeshLine",
+                "name": "Points",
+                "location": (-200, -100),
+                "properties": {
+                    "count_mode": 'TOTAL',
+                    "count": 5
+                }
+            }
+            
+            node_data["nodes"].extend([array_node, points_node])
+            
+            # Enlaces para el nodo de array
+            node_data["links"] = [
+                {
+                    "from_node": "GROUP_INPUT",
+                    "from_socket": "Geometry",
+                    "to_node": "Array",
+                    "to_socket": "Instance"
+                },
+                {
+                    "from_node": "Points",
+                    "from_socket": "Mesh",
+                    "to_node": "Array",
+                    "to_socket": "Points"
+                },
+                {
+                    "from_node": "Array",
+                    "from_socket": "Instances",
+                    "to_node": "GROUP_OUTPUT",
+                    "to_socket": "Geometry"
+                }
+            ]
+        
+        return node_data
     
     def apply_node_tree(self, obj, node_data):
         """

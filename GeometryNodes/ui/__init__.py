@@ -1,4 +1,4 @@
-from . import new_panels as panels
+from . import panels
 
 def register():
     panels.register()

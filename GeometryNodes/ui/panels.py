@@ -1,9 +1,9 @@
 import bpy
 from bpy.types import Panel
 
-class SCIBLEND_PT_geometry_nodes_panel(Panel):
+class SCIBLEND_PT_geometry_nodes(Panel):
     bl_label = "SciBlend Geometry Nodes"
-    bl_idname = "SCIBLEND_PT_geometry_nodes_panel"
+    bl_idname = "SCIBLEND_PT_geometry_nodes"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'SciBlend'
@@ -11,45 +11,42 @@ class SCIBLEND_PT_geometry_nodes_panel(Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        props = scene.sciblend_geonodes
         
-        # Sección para importar JSON
+        # Sección para aplicar transformaciones predefinidas
         box = layout.box()
-        box.label(text="Importar JSON")
+        box.label(text="Transformaciones Predefinidas")
         
+        # Selector de transformación
         row = box.row()
-        row.operator("sciblend.import_geometry_nodes_json", icon='FILEBROWSER')
+        row.prop(props, "transform_type", text="Tipo")
         
-        # Sección para tipos de transformaciones
-        box = layout.box()
-        box.label(text="Transformaciones")
+        # Selector de atributo
+        row = box.row()
+        row.prop(props, "attribute_target", text="Aplicar a")
         
-        # Lista de transformaciones disponibles
-        transformations = [
-            ("translate", "Traslación", "TRANSFORM_ORIGINS"),
-            ("rotate", "Rotación", "DRIVER_ROTATIONAL_DIFFERENCE"),
-            ("scale", "Escala", "FULLSCREEN_ENTER"),
-            ("mirror", "Espejo", "MOD_MIRROR"),
-            ("array", "Array", "MOD_ARRAY"),
-        ]
-        
-        for transform_id, transform_name, icon in transformations:
+        # Si se selecciona "Atributo personalizado", mostrar campo para el nombre
+        if props.attribute_target == 'CUSTOM':
             row = box.row()
-            op = row.operator("sciblend.apply_transformation", text=transform_name, icon=icon)
-            op.transform_type = transform_id
+            row.prop(props, "custom_attribute_name", text="Nombre")
         
-        # Verificar si hay un archivo JSON cargado
-        if hasattr(scene, "sciblend_geonodes") and scene.sciblend_geonodes.json_filepath:
-            box = layout.box()
-            box.label(text=f"JSON cargado: {bpy.path.basename(scene.sciblend_geonodes.json_filepath)}")
-
-classes = (
-    SCIBLEND_PT_geometry_nodes_panel,
-)
+        # Botón para aplicar la transformación
+        row = box.row()
+        row.operator("sciblend.apply_transformation", text="Aplicar Transformación")
+        
+        # Sección para cargar JSON personalizado
+        box = layout.box()
+        box.label(text="Cargar JSON Personalizado")
+        
+        # Campo para seleccionar archivo JSON
+        box.prop(props, "json_filepath", text="")
+        
+        # Botón para aplicar el JSON
+        row = box.row()
+        row.operator("sciblend.apply_geometry_nodes", text="Aplicar Geometry Nodes")
 
 def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
+    bpy.utils.register_class(SCIBLEND_PT_geometry_nodes)
 
 def unregister():
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls) 
+    bpy.utils.unregister_class(SCIBLEND_PT_geometry_nodes) 
