@@ -1,0 +1,52 @@
+{
+    "name": "Rotación",
+    "description": "Aplica una rotación a la geometría",
+    "nodes": [
+        {
+            "id": "input",
+            "type": "NodeGroupInput",
+            "location": [-300, 0]
+        },
+        {
+            "id": "output",
+            "type": "NodeGroupOutput",
+            "location": [300, 0]
+        },
+        {
+            "id": "transform",
+            "type": "GeometryNodeTransform",
+            "location": [0, 0],
+            "inputs": {
+                "Translation": [0.0, 0.0, 0.0],
+                "Rotation": [0.0, 0.0, 0.785398],
+                "Scale": [1.0, 1.0, 1.0]
+            }
+        }
+    ],
+    "links": [
+        {
+            "from_node": "input",
+            "from_socket": "Geometry",
+            "to_node": "transform",
+            "to_socket": "Geometry"
+        },
+        {
+            "from_node": "transform",
+            "from_socket": "Geometry",
+            "to_node": "output",
+            "to_socket": "Geometry"
+        }
+    ],
+    "inputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ]
+} 

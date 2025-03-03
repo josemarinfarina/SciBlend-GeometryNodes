@@ -1,0 +1,110 @@
+{
+    "name": "Ejemplo Complejo",
+    "description": "Un ejemplo complejo que combina varias transformaciones",
+    "nodes": [
+        {
+            "id": "input",
+            "type": "NodeGroupInput",
+            "location": [-600, 0]
+        },
+        {
+            "id": "output",
+            "type": "NodeGroupOutput",
+            "location": [600, 0]
+        },
+        {
+            "id": "transform1",
+            "type": "GeometryNodeTransform",
+            "location": [-400, 0],
+            "inputs": {
+                "Translation": [0.0, 0.0, 0.0],
+                "Rotation": [0.0, 0.0, 0.0],
+                "Scale": [0.5, 0.5, 0.5]
+            }
+        },
+        {
+            "id": "transform2",
+            "type": "GeometryNodeTransform",
+            "location": [-200, 0],
+            "inputs": {
+                "Translation": [0.0, 1.0, 0.0],
+                "Rotation": [0.0, 0.0, 0.0],
+                "Scale": [1.0, 1.0, 1.0]
+            }
+        },
+        {
+            "id": "line",
+            "type": "GeometryNodeMeshLine",
+            "location": [0, -200],
+            "inputs": {
+                "Count": 3,
+                "Length": 4.0
+            }
+        },
+        {
+            "id": "instance",
+            "type": "GeometryNodeInstanceOnPoints",
+            "location": [200, 0]
+        },
+        {
+            "id": "transform3",
+            "type": "GeometryNodeTransform",
+            "location": [400, 0],
+            "inputs": {
+                "Translation": [0.0, 0.0, 0.0],
+                "Rotation": [0.0, 0.0, 0.785398],
+                "Scale": [1.0, 1.0, 1.0]
+            }
+        }
+    ],
+    "links": [
+        {
+            "from_node": "input",
+            "from_socket": "Geometry",
+            "to_node": "transform1",
+            "to_socket": "Geometry"
+        },
+        {
+            "from_node": "transform1",
+            "from_socket": "Geometry",
+            "to_node": "transform2",
+            "to_socket": "Geometry"
+        },
+        {
+            "from_node": "transform2",
+            "from_socket": "Geometry",
+            "to_node": "instance",
+            "to_socket": "Instance"
+        },
+        {
+            "from_node": "line",
+            "from_socket": "Mesh",
+            "to_node": "instance",
+            "to_socket": "Points"
+        },
+        {
+            "from_node": "instance",
+            "from_socket": "Instances",
+            "to_node": "transform3",
+            "to_socket": "Geometry"
+        },
+        {
+            "from_node": "transform3",
+            "from_socket": "Geometry",
+            "to_node": "output",
+            "to_socket": "Geometry"
+        }
+    ],
+    "inputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ]
+} 

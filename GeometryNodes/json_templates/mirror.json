@@ -1,0 +1,52 @@
+{
+    "name": "Espejo",
+    "description": "Aplica un efecto de espejo a la geometría",
+    "nodes": [
+        {
+            "id": "input",
+            "type": "NodeGroupInput",
+            "location": [-300, 0]
+        },
+        {
+            "id": "output",
+            "type": "NodeGroupOutput",
+            "location": [300, 0]
+        },
+        {
+            "id": "mirror",
+            "type": "GeometryNodeMirror",
+            "location": [0, 0],
+            "inputs": {
+                "Mirror X": true,
+                "Mirror Y": false,
+                "Mirror Z": false
+            }
+        }
+    ],
+    "links": [
+        {
+            "from_node": "input",
+            "from_socket": "Geometry",
+            "to_node": "mirror",
+            "to_socket": "Geometry"
+        },
+        {
+            "from_node": "mirror",
+            "from_socket": "Geometry",
+            "to_node": "output",
+            "to_socket": "Geometry"
+        }
+    ],
+    "inputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ]
+} 

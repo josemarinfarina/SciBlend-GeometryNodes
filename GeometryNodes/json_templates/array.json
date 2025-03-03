@@ -1,0 +1,62 @@
+{
+    "name": "Array",
+    "description": "Crea un array de instancias de la geometría",
+    "nodes": [
+        {
+            "id": "input",
+            "type": "NodeGroupInput",
+            "location": [-300, 0]
+        },
+        {
+            "id": "output",
+            "type": "NodeGroupOutput",
+            "location": [300, 0]
+        },
+        {
+            "id": "line",
+            "type": "GeometryNodeMeshLine",
+            "location": [-100, -100],
+            "inputs": {
+                "Count": 5,
+                "Length": 2.0
+            }
+        },
+        {
+            "id": "instance",
+            "type": "GeometryNodeInstanceOnPoints",
+            "location": [100, 0]
+        }
+    ],
+    "links": [
+        {
+            "from_node": "input",
+            "from_socket": "Geometry",
+            "to_node": "instance",
+            "to_socket": "Instance"
+        },
+        {
+            "from_node": "line",
+            "from_socket": "Mesh",
+            "to_node": "instance",
+            "to_socket": "Points"
+        },
+        {
+            "from_node": "instance",
+            "from_socket": "Instances",
+            "to_node": "output",
+            "to_socket": "Geometry"
+        }
+    ],
+    "inputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "Geometry",
+            "type": "NodeSocketGeometry"
+        }
+    ]
+} 
